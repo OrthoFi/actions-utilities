@@ -1,0 +1,46 @@
+name: Sync risk
+on:
+  workflow_call:
+    secrets:
+      github-token:
+        description: secrets.BUILD_GITHUB_TOKEN
+        required: true
+
+jobs:
+  sync-risk:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Verify Commit
+        run: |
+          $message = "$(git log -1 --pretty=%B)"
+          if($message -notmatch "Merge pull request \#\d+ from OrthoFi/*") {
+            Write-Host "::error title=Unexpected commit message::$message"
+            exit 1
+          }
+
+      - name: Checkout risk
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: risk
+          token: ${{ secrets.github-token }}
+
+      - name: Configure GitHub User
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Merge main into risk
+        run: git merge origin/main --ff
+
+      - name: Push risk
+        run: git push
