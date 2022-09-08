@@ -1,0 +1,35 @@
+name: Reset Branches
+on:
+  workflow_call:
+    secrets:
+      github-token:
+        description: secrets.BUILD_GITHUB_TOKEN
+        required: true
+jobs:
+  dev:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout risk
+        uses: actions/checkout@v3
+        with:
+          ref: risk
+
+      - name: Checkout dev
+        uses: actions/checkout@v3
+        with:
+          ref: dev
+          token: ${{ secrets.github-token }}
+
+      - name: Configure GitHub User
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Reset dev to risk
+        run: git reset --hard origin/risk
+
+      - name: Force Push dev
+        run: git push -f
