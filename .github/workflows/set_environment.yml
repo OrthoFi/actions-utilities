@@ -1,0 +1,65 @@
+name: Set Environment
+on:
+  workflow_call:
+    inputs:
+      environment-name:
+        description: The name of the provided input to the workflow
+        required: false
+        type: string
+
+    outputs:
+      environment-name:
+        value: ${{ jobs.environment.outputs.environment-name }}
+      is-valid:
+        value: ${{ jobs.environment.outputs.is-valid }}
+
+    secrets:
+      github-token:
+        description: secrets.BUILD_GITHUB_TOKEN
+        required: true
+
+jobs:
+  environment:
+    name: Set & Verify Environment Name
+    runs-on: ubuntu-latest
+    outputs:
+      environment-name: ${{ steps.validate.outputs.environment-name }}
+      is-valid: ${{ steps.validate.outputs.is-valid }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Set Environment Name
+        id: environment-name
+        run: |
+          $environment = "${{ inputs.environment }}"
+
+          if (-not $environment) {
+              switch ("${{ github.ref }}") {
+                  "refs/heads/dev" { $environment = "dev" }
+                  "refs/heads/risk" { $environment = "risk" }
+                  "refs/heads/main" { $environment = "production" }
+              }
+          }
+
+          echo "environment-name=$environment" >> $env:GITHUB_OUTPUT
+
+      - name: Login
+        run: echo "${{ secrets.github-token }}" | gh auth login --with-token
+
+      - name: Validate
+        id: validate
+        run: |
+          $environments = New-Object System.Collections.Generic.HashSet[string]
+
+          $(gh api /repos/${{ github.repository }}/environments --jq ".environments.[] | .name" --paginate) `
+          | ForEach-Object { $environments.Add($_.Split('-')[0].ToLower()) }
+
+          if($environments.Contains("${{ steps.environment-name.outputs.environment-name }}")) {
+            echo "environment-name=${{ steps.environment-name.outputs.environment-name }}" >> $env:GITHUB_OUTPUT
+            echo "is-valid=true" >> $env:GITHUB_OUTPUT
+          }
+          else {
+            echo "environment-name=" >> $env:GITHUB_OUTPUT
+            echo "is-valid=false" >> $env:GITHUB_OUTPUT
+          }
