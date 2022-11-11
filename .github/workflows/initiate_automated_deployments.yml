@@ -1,0 +1,45 @@
+name: Initiate Automated Deployments
+on:
+  workflow_call:
+    secrets:
+      github-token:
+        description: secrets.BUILD_GITHUB_TOKEN
+        required: true
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  init:
+    name: Init
+    runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.environments.outputs.environments }}
+    steps:
+      - name: Determine Environments
+        id: environments
+        run: |
+          switch ("${{ github.event.workflow_run.head_branch }}") {
+              "dev" { $environments = @("dev") }
+              "main" { $environments = @("production", "demo") }
+              "regression" { $environments = @("risk") }
+              "risk" { $environments = @("risk") }
+              Default { $environments = @($branch) }
+          }
+
+          echo "environments=$(ConvertTo-Json -Compress $environments)" >> $env:GITHUB_OUTPUT
+
+  invoke-deployment-workflow:
+    name: Invoke Deployment
+    runs-on: ubuntu-latest
+    needs: [init]
+    strategy:
+      matrix:
+        environment: ${{ fromJSON(needs.init.outputs.environments) }}
+    steps:
+      - name: Authenticate
+        run: echo "${{ secrets.github-token }}" | gh auth login --with-token
+
+      - name: Invoke Deployment Workflow
+        run: gh workflow run deploy.yml --ref ${{ github.event.workflow_run.head_branch }} -f "environment=${{ matrix.environment }}" -R ${{ github.repository }}
