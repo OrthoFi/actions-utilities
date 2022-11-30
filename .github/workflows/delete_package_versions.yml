@@ -1,0 +1,67 @@
+name: Delete Package Versions
+on:
+  workflow_call:
+    inputs:
+      prerelease-pattern:
+        description: The pattern of the prerelease version to search for. Use * to deleted all prerelease versions.
+        required: false
+        type: string
+
+    secrets:
+      github-token:
+        description: secrets.BUILD_GITHUB_TOKEN
+        required: true
+
+jobs:
+  delete-package-versions:
+    name: Delete Package Versions
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Login
+        run: echo "${{ secrets.github-token }}" | gh auth login --with-token
+
+      - name: Delete Package Versions
+        id: validate
+        run: |
+          $prerelease_pattern = "${{ inputs.prerelease-pattern }}"
+          if ($prerelease_pattern.Length -eq 0) {
+            Write-Output "::error title=Invalid prerelease pattern::prerelease pattern cannot be empty"
+            exit 1
+          }
+
+          $packages = $(gh api /orgs/OrthoFi/packages?package_type=nuget | ConvertFrom-Json)
+          $repository = "${{ github.repository }}".Replace("${{ github.repository_owner }}/", "")
+
+          $errored = $False
+
+          foreach ($package in $packages) {
+            if ($package.package_type -ne "nuget" -or $package.repository.name -ne $repository) {
+              continue
+            }
+
+            $versions = $(gh api /orgs/OrthoFi/packages/nuget/$($package.name)/versions?per_page=100 | ConvertFrom-Json)
+
+            foreach ($version in $versions) {
+              $match = Select-String '.*?-(.*?)\.' -InputObject $version.name
+              if ($match.matches.groups.Length -eq 2) {
+                $prerelease = $match.matches.groups[1].value
+                if ($prerelease_pattern -eq "*" -or $prerelease -eq $prerelease_pattern) {                  
+                  $result = $(Write-Output "" | gh api -X=DELETE /orgs/OrthoFi/packages/nuget/$($package.name)/versions/$($version.id) --input -)
+                  if (-not $result) {
+                    Write-Output "::notice title=$($package.name)::Deleted version $($version.name) id $($version.id)" 
+                  }
+                  else {
+                    $errored = $True
+                    Write-Output "::error title=$($package.name)::Failed to delete version $($version.name) id $($version.id) $result"
+                  }
+                }
+              }
+            }
+          }
+
+          if ($errored) {
+            exit 1
+          }
