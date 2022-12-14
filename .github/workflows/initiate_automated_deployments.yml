@@ -24,7 +24,7 @@ jobs:
               "dev" { $environments = @("dev") }
               "main" { $environments = @("production", "demo") }
               "regression" { $environments = @("risk") }
-              "risk" { $environments = @("risk") }
+              "risk" { $environments = @("risk", "qa") }
               Default { $environments = @($branch) }
           }
 
