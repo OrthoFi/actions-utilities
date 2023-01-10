@@ -6,6 +6,10 @@ on:
         description: The name of the provided input to the workflow
         required: false
         type: string
+      multiple-env-names:
+        description: Return multiple environment names when applicable
+        required: false
+        type: boolean
 
     outputs:
       environment-name:
@@ -37,7 +41,7 @@ jobs:
           if (-not $environment) {
               switch ("${{ github.ref }}") {
                   "refs/heads/dev" { $environment = "dev" }
-                  "refs/heads/risk" { $environment = "risk" }
+                  "refs/heads/risk" { $environment = $(If ("${{ inputs.multiple-env-names }}" -eq "true") {"risk,qa"} Else {"risk"} )}
                   "refs/heads/main" { $environment = "production" }
               }
           }
