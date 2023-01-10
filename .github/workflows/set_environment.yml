@@ -32,7 +32,7 @@ jobs:
       - name: Set Environment Name
         id: environment-name
         run: |
-          $environment = "${{ inputs.environment }}"
+          $environment = "${{ inputs.environment-name }}"
 
           if (-not $environment) {
               switch ("${{ github.ref }}") {
