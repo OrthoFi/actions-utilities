@@ -56,7 +56,7 @@ jobs:
           $(gh api /repos/${{ github.repository }}/environments --jq ".environments.[] | .name" --paginate) `
           | ForEach-Object { $github_environments.Add($_.Split('-')[0].ToLower()) }
 
-          foreach ($item in $("${{ steps.environment-names.outputs.environment-names }}" | ConvertFrom-Json) ) {
+          foreach ($item in $('${{ steps.environment-names.outputs.environment-names }}' | ConvertFrom-Json) ) {
             if($github_environments.Contains($item)) {
               $environments.Add($item) 
             }
