@@ -41,7 +41,7 @@ jobs:
             $environment = @($environment)
           }
 
-          echo "environment-names=$($environment | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
+          echo "environment-names=$(ConvertTo-Json $environment -Compress)" >> $env:GITHUB_OUTPUT
 
       - name: Login
         run: echo "${{ secrets.github-token }}" | gh auth login --with-token
@@ -62,4 +62,4 @@ jobs:
             }
           }
 
-          echo "environment-names=$($environments | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
+          echo "environment-names=$(ConvertTo-Json $environments -Compress)" >> $env:GITHUB_OUTPUT
