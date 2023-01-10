@@ -10,8 +10,6 @@ on:
     outputs:
       environment-names:
         value: ${{ jobs.environment.outputs.environment-names }}
-      is-valid:
-        value: ${{ jobs.environment.outputs.is-valid }}
 
     secrets:
       github-token:
@@ -24,7 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       environment-names: ${{ steps.validate.outputs.environment-names }}
-      is-valid: ${{ steps.validate.outputs.is-valid }}
     defaults:
       run:
         shell: pwsh
