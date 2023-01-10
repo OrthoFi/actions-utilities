@@ -1,4 +1,4 @@
-name: Set Environment
+name: Set Environments
 on:
   workflow_call:
     inputs:
