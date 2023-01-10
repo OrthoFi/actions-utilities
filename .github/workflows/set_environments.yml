@@ -1,0 +1,68 @@
+name: Set Environment
+on:
+  workflow_call:
+    inputs:
+      environment-name:
+        description: The name of the provided input to the workflow
+        required: false
+        type: string
+
+    outputs:
+      environment-names:
+        value: ${{ jobs.environment.outputs.environment-names }}
+      is-valid:
+        value: ${{ jobs.environment.outputs.is-valid }}
+
+    secrets:
+      github-token:
+        description: secrets.BUILD_GITHUB_TOKEN
+        required: true
+
+jobs:
+  environment:
+    name: Set & Verify Environment Name
+    runs-on: ubuntu-latest
+    outputs:
+      environment-names: ${{ steps.validate.outputs.environment-names }}
+      is-valid: ${{ steps.validate.outputs.is-valid }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Set Environment Name
+        id: environment-names
+        run: |
+          $environment = "${{ inputs.environment-name }}"
+
+          if (-not $environment) {
+              switch ("${{ github.ref }}") {
+                  "refs/heads/dev" { $environment = @("dev") }
+                  "refs/heads/risk" { $environment = @("risk","qa") }
+                  "refs/heads/main" { $environment = @("production") }
+              }
+          } else {
+            $environment = @($environment)
+          }
+
+          echo "environment-names=$($environment | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
+
+      - name: Login
+        run: echo "${{ secrets.github-token }}" | gh auth login --with-token
+
+      - name: Validate
+        id: validate
+        run: |
+          $github_environments = New-Object System.Collections.Generic.HashSet[string]
+          $environments = New-Object System.Collections.Generic.HashSet[string]
+
+
+          $(gh api /repos/${{ github.repository }}/environments --jq ".environments.[] | .name" --paginate) `
+          | ForEach-Object { $github_environments.Add($_.Split('-')[0].ToLower()) }
+
+          foreach ($item in $("${{ steps.environment-names.outputs.environment-names }}" | ConvertFrom-Json) ) {
+            if($github_environments.Contains($item)) {
+              $environments.Add($item) 
+            }
+          }
+
+          echo "environment-names=$($environments | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
