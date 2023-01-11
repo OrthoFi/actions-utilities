@@ -61,5 +61,5 @@ jobs:
               $environments.Add($item) 
             }
           }
-          echo "environment-names=$(ConvertTo-Json $environments -Compress)"
+          
           echo "environment-names=$(ConvertTo-Json $environments -Compress)" >> $env:GITHUB_OUTPUT
