@@ -32,7 +32,7 @@ jobs:
             exit 1
           }
 
-          $packages = $(gh api /orgs/OrthoFi/packages?package_type=nuget | ConvertFrom-Json)
+          $packages = $(gh api /orgs/OrthoFi/packages?package_type=nuget --paginate | ConvertFrom-Json)
           $repository = "${{ github.repository }}".Replace("${{ github.repository_owner }}/", "")
 
           $errored = $False
