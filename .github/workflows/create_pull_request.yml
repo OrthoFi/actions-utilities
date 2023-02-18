@@ -31,4 +31,8 @@ jobs:
 
       - name: Create PR
         if: ${{ steps.check.outputs.create }}
-        run: gh pr create -R "${{ github.repository }}" --title "Merge branch 'risk' into 'main'" --body "risk -> main" --base "main" --head "risk"
+        run: |
+          gh pr create -R "${{ github.repository }}" --title "Merge branch 'risk' into 'main'" --body "risk -> main" --base "main" --head "risk"
+          if($LASTEXITCODE -eq 1) {
+            $LASTEXITCODE = 0
+          }
