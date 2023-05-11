@@ -17,14 +17,20 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v3
         with:
+          fetch-depth: 0
           ref: main
+          token: ${{ secrets.github-token }}
 
       - name: Verify Commit
         run: |
           $message = "$(git log -1 --pretty=%B)"
           if($message -notmatch "Merge pull request \#\d+ from OrthoFi/*") {
-            Write-Host "::error title=Unexpected commit message::$message"
-            exit 1
+            Write-Output "::error title=Ah-Ah-Ah! You didn't say the magic word!::Resetting main to ${{ github.event.pull_request.base.sha }}"
+
+            git reset --hard ${{ github.event.pull_request.base.sha }}
+            git push --force
+
+            EXIT 1
           }
 
       - name: Checkout risk
@@ -40,7 +46,6 @@ jobs:
           git config user.email "github-actions@github.com"
 
       - name: Merge main into risk
-        run: git merge origin/main --ff
-
-      - name: Push risk
-        run: git push
+        run: |
+          git merge origin/main --ff
+          git push
