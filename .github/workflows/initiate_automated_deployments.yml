@@ -1,6 +1,17 @@
 name: Initiate Automated Deployments
 on:
   workflow_call:
+    inputs:
+      disable-demo-environment:
+        description: Disable the demo deployment environment
+        required: false
+        type: boolean
+        default: false
+      disable-qa-environment:
+        description: Disable the QA deployment environment
+        required: false
+        type: boolean
+        default: false
     secrets:
       github-token:
         description: secrets.BUILD_GITHUB_TOKEN
@@ -20,12 +31,30 @@ jobs:
       - name: Determine Environments
         id: environments
         run: |
-          switch ("${{ github.event.workflow_run.head_branch }}") {
-              "dev" { $environments = @("dev") }
-              "main" { $environments = @("production", "demo") }
-              "regression" { $environments = @("risk") }
-              "risk" { $environments = @("risk", "qa") }
-              Default { $environments = @($branch) }
+          $branch = "${{ github.event.workflow_run.head_branch }}"
+          $disableDemoEnvironment = $${{ inputs.disable-demo-environment }}
+          $disableQaEnvironment = $${{ inputs.disable-qa-environment }}
+          
+          switch ($branch) {
+            "dev" { $environments = @("dev") }
+            "main" {
+              If ($disableDemoEnvironment -eq $true) {
+                $environments = @("production")
+              }
+              Else {
+                $environments = @("production", "demo")
+              }
+            }
+            "regression" { $environments = @("risk") }
+            "risk" {
+              If ($disableQaEnvironment -eq $true) {
+                $environments = @("risk")
+              }
+              Else {
+                $environments = @("risk", "qa")
+              }
+            }
+            Default { $environments = @($branch) }
           }
 
           echo "environments=$(ConvertTo-Json -Compress $environments)" >> $env:GITHUB_OUTPUT
