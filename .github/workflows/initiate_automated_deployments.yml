@@ -32,29 +32,29 @@ jobs:
         id: environments
         run: |
           $branch = "${{ github.event.workflow_run.head_branch }}"
-          $disableDemoEnvironment = $${{ inputs.disable-demo-environment }}
-          $disableQaEnvironment = $${{ inputs.disable-qa-environment }}
+          $disableDemoEnvironment = [System.Boolean]::Parse("${{ inputs.disable-demo-environment }}")
+          $disableQaEnvironment = [System.Boolean]::Parse("${{ inputs.disable-qa-environment }}")
           
           switch ($branch) {
             "dev" { $environments = @("dev") }
             "main" {
-              If ($disableDemoEnvironment -eq $true) {
+              if ($disableDemoEnvironment -eq $true) {
                 $environments = @("production")
               }
-              Else {
+              else {
                 $environments = @("production", "demo")
               }
             }
             "regression" { $environments = @("risk") }
             "risk" {
-              If ($disableQaEnvironment -eq $true) {
+              if ($disableQaEnvironment -eq $true) {
                 $environments = @("risk")
               }
-              Else {
+              else {
                 $environments = @("risk", "qa")
               }
             }
-            Default { $environments = @($branch) }
+            default { $environments = @($branch) }
           }
 
           echo "environments=$(ConvertTo-Json -Compress $environments)" >> $env:GITHUB_OUTPUT
