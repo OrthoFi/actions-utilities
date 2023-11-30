@@ -1,0 +1,35 @@
+name: Verify Environment Name
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+jobs:
+  verify-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Environment Name Is A Valid GHA Environment
+        run: |
+          $env:ENVIRONMENT = "${{ inputs.environment }}".ToLower()
+          echo "Provided environment: $env:ENVIRONMENT"
+
+          $envs = gh api repos/${{ github.repository }}/environments | ConvertFrom-Json
+          echo "Valid environments: $($envs.environments.name -join ', ')"
+          $envFound = $False
+          foreach ($envItem in $envs.environments.name) {
+            if ($envItem.ToLower().StartsWith($env:ENVIRONMENT)) {
+              $envFound = $True
+              break
+            }
+          }
+          if (-not $envFound) {
+            echo "Environment $env:ENVIRONMENT is not valid or does not exist in the repository"
+            exit 1
+          } else {
+            echo "environment=$env:ENVIRONMENT" >> $GITHUB_ENV
+            echo "Set environment to $env:ENVIRONMENT"
+          }
+        shell: pwsh
