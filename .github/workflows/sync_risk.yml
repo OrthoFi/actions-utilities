@@ -25,7 +25,7 @@ jobs:
         run: |
           $message = "$(git log -1 --pretty=%B)"
           if($message -notmatch "Merge pull request \#\d+ from OrthoFi/*") {
-            Write-Output "::error title=Ah-Ah-Ah! You didn't say the magic word!::Resetting main to ${{ github.event.pull_request.base.sha }}"
+            Write-Output "::error title=Someone did a squash merge to main, please only use merge commits when PR'ing to main::Resetting main to ${{ github.event.pull_request.base.sha }}"
 
             git reset --hard ${{ github.event.pull_request.base.sha }}
             git push --force
