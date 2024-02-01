@@ -13,6 +13,7 @@ jobs:
     steps:
       - name: Verify Environment Name Is A Valid GHA Environment
         run: |
+          $env:GITHUB_TOKEN = "${{ secrets.BUILD_GITHUB_TOKEN }}"
           $env:ENVIRONMENT = "${{ inputs.environment }}".ToLower()
           echo "Provided environment: $env:ENVIRONMENT"
 
