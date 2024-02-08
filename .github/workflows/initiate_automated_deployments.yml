@@ -3,12 +3,27 @@ on:
   workflow_call:
     inputs:
       disable-demo-environment:
-        description: Disable the demo deployment environment
+        description: Disable the automatic deployment trigger for the demo environment
         required: false
         type: boolean
         default: false
+      disable-dev-environment:
+        description: Disable the automatic deployment trigger for the dev environment
+        required: false
+        type: boolean
+        default: false
+      disable-production-environment:
+          description: Disable automatic deployment trigger for the production environment
+          required: false
+          type: boolean
+          default: false
       disable-qa-environment:
-        description: Disable the QA deployment environment
+        description: Disable the automated deployment trigger for the QA environment
+        required: false
+        type: boolean
+        default: false
+      disable-risk-environment:
+        description: Disable the automated deployment trigger for the risk environment
         required: false
         type: boolean
         default: false
@@ -33,25 +48,49 @@ jobs:
         run: |
           $branch = "${{ github.event.workflow_run.head_branch }}"
           $disableDemoEnvironment = [System.Boolean]::Parse("${{ inputs.disable-demo-environment }}")
+          $disableDevEnvironment = [System.Boolean]::Parse("${{ inputs.disable-dev-environment }}")
+          $disableProductionEnvironment = [System.Boolean]::Parse("${{ inputs.disable-production-environment }}")
           $disableQaEnvironment = [System.Boolean]::Parse("${{ inputs.disable-qa-environment }}")
+          $disableRiskEnvironment = [System.Boolean]::Parse("${{ inputs.disable-risk-environment }}")
           
           switch ($branch) {
-            "dev" { $environments = @("dev") }
-            "main" {
-              if ($disableDemoEnvironment -eq $true) {
-                $environments = @("production")
+            "dev" {
+              $environments = @()
+              if ($disableDevEnvironment -eq $true) {
+                Write-Host "Input of disable-dev-environment set to 'true', skipping trigger of dev environment"
               }
               else {
-                $environments = @("production", "demo")
+                $environments += "dev"
               }
             }
-            "regression" { $environments = @("risk") }
-            "risk" {
-              if ($disableQaEnvironment -eq $true) {
-                $environments = @("risk")
+            "main" {
+              $environments = @()
+              if ($disableDemoEnvironment -eq $true) {
+                Write-Host "Input of disable-demo-environment set to 'true', skipping trigger of demo environment"
               }
               else {
-                $environments = @("risk", "qa")
+                $environments += "demo"
+              }
+              if ($disableProductionEnvironment -eq $true) {
+                Write-Host "Input of disable-production-environment set to 'true', skipping trigger of production environment"
+              }
+              else {
+                $environments += "production"
+              }
+            }
+            "risk" {
+              $environments = @()
+              if ($disableRiskEnvironment -eq $true) {
+                Write-Host "Input of disable-risk-environment set to 'true', skipping trigger of risk environment"
+              }
+              else {
+                $environments += "risk"
+              }
+              if ($disableQaEnvironment -eq $true) {
+                Write-Host "Input of disable-qa-environment set to 'true', skipping trigger of QA environment"
+              }
+              else {
+                $environments += "qa"
               }
             }
             default { $environments = @($branch) }
@@ -61,6 +100,7 @@ jobs:
 
   invoke-deployment-workflow:
     name: Invoke Deployment
+    if: ${{ needs.init.outputs.environments != '[]' }}
     runs-on: ubuntu-latest
     needs: [init]
     strategy:
